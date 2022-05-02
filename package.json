@@ -1,0 +1,20 @@
+{
+  "name": "ee547_team5_final_project",
+  "version": "1.0.0",
+  "description": "Team 5's final project: Spotify Music with Statistics &amp; Machine Learning",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/An-Andrew-Pham/EE547_Team5_Final_Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/An-Andrew-Pham/EE547_Team5_Final_Project/issues"
+  },
+  "homepage": "https://github.com/An-Andrew-Pham/EE547_Team5_Final_Project#readme"
+}
