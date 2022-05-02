@@ -6,31 +6,16 @@
  * For more information, read
  * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
  */
-'use strict';
+
 var express = require('express'); // Express web server framework
-const fs = require('fs');
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
-const credentialsFile = 'secrets.json';
-var client_id = 'CLIENT_ID'; // Your client id
-var client_secret = 'CLIENT_SECRET'; // Your secret
-var redirect_uri = 'REDIRECT_URI'; // Your redirect uri
-
-//Read from our secrets.json file & update the credentials 
-let fileData = fs.readFileSync(credentialsFile);
-let fileJsonFormat; 
-try{
-  fileJsonFormat = JSON.parse(fileData);
-  client_id = fileJsonFormat.client_id;
-  client_secret = fileJsonFormat.client_secret;
-  
-}catch(e){
-  process.exit(2);
-}
-
+var client_id = '776dba2ae6e640beaa21aa42ffd31f91'; // Your client id
+var client_secret = '42ae803108e2494987871a3b771b9726'; // Your secret
+var redirect_uri = 'http://172.16.42.131:3000/callback'; // Your redirect uri
 
 /**
  * Generates a random string containing numbers and letters
@@ -158,5 +143,5 @@ app.get('/refresh_token', function(req, res) {
   });
 });
 
-console.log('Listening on 8888');
-app.listen(8888);
+console.log('Listening on 3000');
+app.listen(3000);
