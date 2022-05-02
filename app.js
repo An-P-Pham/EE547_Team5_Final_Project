@@ -6,16 +6,31 @@
  * For more information, read
  * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
  */
-
+'use strict';
 var express = require('express'); // Express web server framework
+const fs = require('fs');
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
+const credentialsFile = 'secrets.json';
 var client_id = 'CLIENT_ID'; // Your client id
 var client_secret = 'CLIENT_SECRET'; // Your secret
 var redirect_uri = 'REDIRECT_URI'; // Your redirect uri
+
+//Read from our secrets.json file & update the credentials 
+let fileData = fs.readFileSync(credentialsFile);
+let fileJsonFormat; 
+try{
+  fileJsonFormat = JSON.parse(fileData);
+  client_id = fileJsonFormat.client_id;
+  client_secret = fileJsonFormat.client_secret;
+  
+}catch(e){
+  process.exit(2);
+}
+
 
 /**
  * Generates a random string containing numbers and letters
