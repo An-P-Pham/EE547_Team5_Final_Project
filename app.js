@@ -41,7 +41,7 @@ var app = express();
 app.use(express.static(__dirname + '/public'))
    .use(cors())
    .use(cookieParser());
-
+   
 /*
   Login to spotify
 */
@@ -146,6 +146,10 @@ app.get('/refresh_token', function(req, res) {
       });
     }
   });
+});
+
+app.get('/', (req, res, next) => {
+  res.sendFile(__dirname + '/index.html');  
 });
 
 app.get('/index', (req, res, next) => {
