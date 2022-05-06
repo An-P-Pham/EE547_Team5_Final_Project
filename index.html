@@ -74,8 +74,7 @@
 							<p>Account </p>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="#">Action</a></li>
-							<li><a href="#">Another action</a></li>														
+							<li><a href="#" data-toggle="modal" data-target=".bs-modal-sm">Sign-in/up</a></li>																				
 						  </ul>
 						</li>
 						<li class="side-menu"><a href="#"><i class="fa fa-bars"></i></a></li>
@@ -145,7 +144,7 @@
 						</div>
 
 						<div class="home_btns m-top-40">
-							<a href="https://bootstrapthemes.co" target="_blank" class="btn btn-primary m-top-20">SEARCH NOW</a>							
+							<a href="#" target="_blank" class="btn btn-primary m-top-20">SEARCH NOW</a>							
 						</div>
 
 					</div>
@@ -769,6 +768,98 @@
 		</section>
 		<!--End off Contact Section-->
 
+		           <!-- Modal -->
+				   <div class="modal fade bs-modal-sm" id="myModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+					<div class="modal-dialog modal-sm">
+						<div class="modal-content">
+							<br>
+							<div class="bs-example bs-example-tabs">
+								<ul id="myTab" class="nav" style="margin-left:15px">
+								<li class="active"><a href="#signin" data-toggle="tab">Sign In</a></li>
+								<li><a href="#signup" data-toggle="tab" style="margin-left:5px">Register</a></li>                        
+								</ul>
+							</div>
+						<div class="modal-body">
+							<div id="tab-content" class="tab-content"> 
+							<div class="tab-pane fade active in" id="signin">
+								<form class="form-horizontal">
+								<fieldset>
+								<!-- Sign In Form -->
+								<!-- Text input-->
+								<div class="control-group">
+								<label class="control-label" for="userid">ID</label>
+								<div class="controls">
+									<input required="" id="userid" name="userid" type="text" class="form-control" placeholder="JoeSixpack" class="input-medium" required="">
+								</div>
+								</div>
+					
+								<!-- Password input-->
+								<div class="control-group">
+								<label class="control-label" for="passwordinput">Password</label>
+								<div class="controls">
+									<input required="" id="passwordinput" name="passwordinput" class="form-control" type="password" placeholder="********" class="input-medium">
+								</div>
+								</div>            
+					
+								<!-- Button -->
+								<div class="control-group">
+								<label class="control-label" for="signin"></label>
+								<div class="controls">
+									<button id="signin" name="signin" class="btn btn-success">Sign In</button>
+								</div>
+								</div>
+								</fieldset>
+								</form>
+							</div>
+							<div class="tab-pane fade" id="signup">
+								<form class="form-horizontal">
+								<fieldset>
+								<!-- Sign Up Form -->
+								
+								<!-- Text input-->
+								<div class="control-group">
+								<label class="control-label" for="userid">ID</label>
+								<div class="controls">
+									<input id="userid" name="userid" class="form-control" type="text" placeholder="JoeSixpack" class="input-large" required="">
+								</div>
+								</div>
+		
+								<!-- Text input-->
+								<div class="control-group">
+								<label class="control-label" for="userid">NAME</label>
+								<div class="controls">
+									<input id="userid" name="userid" class="form-control" type="text" placeholder="JoeSixpack" class="input-large" required="">
+								</div>
+								</div>
+								
+								<!-- Password input-->
+								<div class="control-group">
+								<label class="control-label" for="password">Password</label>
+								<div class="controls">
+									<input id="password" name="password" class="form-control" type="password" placeholder="********" class="input-large" required="">
+									<em>1-8 Characters</em>
+								</div>
+								</div>
+								
+								
+								<!-- Button -->
+								<div class="control-group">
+								<label class="control-label" for="confirmsignup"></label>
+								<div class="controls">
+									<button id="confirmsignup" name="confirmsignup" class="btn btn-success">Sign Up</button>
+								</div>
+								</div>
+								</fieldset>
+								</form>
+						</div>
+						</div>
+						</div>
+						<div class="modal-footer">						
+							<button class="btn btn-block" data-dismiss="modal">Close</button>							
+						</div>
+						</div>
+					</div>
+					</div>
 
 		<!-- scroll up-->
 		<div class="scrollup">
