@@ -18,10 +18,13 @@ const base_url = 'https://api.spotify.com/v1/';
 */
 function searchItem(queryString, queryType){
   //Type is either Track || Artist
-  const search_url = base_url + `search?q=${queryString}&type=${queryType}&limit=${search_limit}`;
+  const searchQuery = encodeURIComponent(queryString);
+  const search_url = base_url + `search?q=${searchQuery}&type=${queryType}&limit=${search_limit}`;
   axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
   .then((response) => {
-      console.log(response.data.artists.items);
+      let id = (queryType == 'artist') ? response.data.artists.items[0].id : response.data.tracks.items[0].id;
+      console.log(id);
+      return id;
 
   }).catch((err) =>{
       console.log('Error with requesting API endpoint');
@@ -71,6 +74,7 @@ request.post(authOptions, function(error, response, body) {
 
     //Test any APIs here after obtaining the access_token
     //searchItem('Keshi', 'artist');
+    //searchItem('First Class', 'track');
     getRecommendations('3pc0bOVB5whxmD50W79wwO,2LIk90788K0zvyj2JJVwkJ', 'chill r&b', '1Fhb9iJPufNMZSwupsXiRe,1rDQ4oMwGJI7B4tovsBOxc');
     request.get(options, function(error, response, body) {
       //console.log(body);
