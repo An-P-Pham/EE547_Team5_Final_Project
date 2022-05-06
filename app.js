@@ -13,6 +13,8 @@ var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
+const router = express.Router();
+
 var client_id = '776dba2ae6e640beaa21aa42ffd31f91'; // Your client id
 var client_secret = '42ae803108e2494987871a3b771b9726'; // Your secret
 var redirect_uri = 'http://172.16.42.131:3000/callback'; // Your redirect uri
@@ -40,6 +42,9 @@ app.use(express.static(__dirname + '/public'))
    .use(cors())
    .use(cookieParser());
 
+/*
+  Login to spotify
+*/
 app.get('/login', function(req, res) {
 
   var state = generateRandomString(16);
@@ -142,6 +147,19 @@ app.get('/refresh_token', function(req, res) {
     }
   });
 });
+
+app.get('/index', (req, res, next) => {
+  res.sendFile(__dirname + '/index.html');  
+});
+
+app.get('/about', (req, res, next) => {
+  res.sendFile(__dirname + '/about.html');  
+});
+
+app.get('/songs', (req, res, next) => {
+  res.sendFile(__dirname + '/songs.html');  
+});
+app.use('/', router);
 
 console.log('Listening on 3000');
 app.listen(3000);
