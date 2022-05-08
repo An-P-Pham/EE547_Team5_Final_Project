@@ -1,147 +1,321 @@
 /**
- * This is an example of a basic node.js script that performs
- * the Authorization Code oAuth2 flow to authenticate against
- * the Spotify Accounts.
- *
- * For more information, read
- * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
- */
+ * This is the main application of our project
+*/
 
+/* Modules, Frameworks, Libraries */
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
-var cors = require('cors');
-var querystring = require('querystring');
-var cookieParser = require('cookie-parser');
+const axios = require('axios')
 
-var client_id = '776dba2ae6e640beaa21aa42ffd31f91'; // Your client id
-var client_secret = '42ae803108e2494987871a3b771b9726'; // Your secret
-var redirect_uri = 'http://172.16.42.131:3000/callback'; // Your redirect uri
 
-/**
- * Generates a random string containing numbers and letters
- * @param  {number} length The length of the string
- * @return {string} The generated string
- */
-var generateRandomString = function(length) {
-  var text = '';
-  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+/* Global Constants */
+var client_id = '1e03ef1b02c04193a4f9ee30aa04502b'; // Your client id
+var client_secret = 'c7648e51d4ec4b01a821fad346c2b7cf'; // Your secret
+var access_token; //Used in spotify API
+const search_limit = 5;
+const base_url = 'https://api.spotify.com/v1/';
+const regExp = /^[a-zA-Z]+$/;
 
-  for (var i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+
+//Application requests authorization
+var authOptions = {
+  url: 'https://accounts.spotify.com/api/token',
+  headers: {
+    'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+  },
+  form: {
+    grant_type: 'client_credentials'
+  },
+  json: true
 };
 
-var stateKey = 'spotify_auth_state';
+request.post(authOptions, function(error, response, body) {
+  if (!error && response.statusCode === 200) {
 
-var app = express();
-
-app.use(express.static(__dirname + '/public'))
-   .use(cors())
-   .use(cookieParser());
-
-app.get('/login', function(req, res) {
-
-  var state = generateRandomString(16);
-  res.cookie(stateKey, state);
-
-  // your application requests authorization
-  var scope = 'user-read-private user-read-email';
-  res.redirect('https://accounts.spotify.com/authorize?' +
-    querystring.stringify({
-      response_type: 'code',
-      client_id: client_id,
-      scope: scope,
-      redirect_uri: redirect_uri,
-      state: state
-    }));
-});
-
-app.get('/callback', function(req, res) {
-
-  // your application requests refresh and access tokens
-  // after checking the state parameter
-
-  var code = req.query.code || null;
-  var state = req.query.state || null;
-  var storedState = req.cookies ? req.cookies[stateKey] : null;
-
-  if (state === null || state !== storedState) {
-    res.redirect('/#' +
-      querystring.stringify({
-        error: 'state_mismatch'
-      }));
-  } else {
-    res.clearCookie(stateKey);
-    var authOptions = {
-      url: 'https://accounts.spotify.com/api/token',
-      form: {
-        code: code,
-        redirect_uri: redirect_uri,
-        grant_type: 'authorization_code'
-      },
+    // use the access token to access the Spotify Web API
+    access_token = body.access_token;
+    var options = {
+      url: 'https://api.spotify.com/v1/users/12142525543',
       headers: {
-        'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Bearer ' + access_token
       },
       json: true
     };
 
-    request.post(authOptions, function(error, response, body) {
-      if (!error && response.statusCode === 200) {
-
-        var access_token = body.access_token,
-            refresh_token = body.refresh_token;
-
-        var options = {
-          url: 'https://api.spotify.com/v1/me',
-          headers: { 'Authorization': 'Bearer ' + access_token },
-          json: true
-        };
-
-        // use the access token to access the Spotify Web API
-        request.get(options, function(error, response, body) {
-          console.log(body);
-        });
-
-        // we can also pass the token to the browser to make requests from there
-        res.redirect('/#' +
-          querystring.stringify({
-            access_token: access_token,
-            refresh_token: refresh_token
-          }));
-      } else {
-        res.redirect('/#' +
-          querystring.stringify({
-            error: 'invalid_token'
-          }));
-      }
+    //Test any APIs here after obtaining the access_token
+    request.get(options, function(error, response, body) {
+      //console.log(body);
     });
   }
 });
 
-app.get('/refresh_token', function(req, res) {
 
-  // requesting access token from refresh token
-  var refresh_token = req.query.refresh_token;
-  var authOptions = {
-    url: 'https://accounts.spotify.com/api/token',
-    headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
-    form: {
-      grant_type: 'refresh_token',
-      refresh_token: refresh_token
-    },
-    json: true
-  };
+/*
+* We can use this function to find the seed_artists & seed_tracks via word query
+* queryString: Either track name or artist name
+* queryType: Either 'track' or 'artist'
+*/
+function searchItem(queryString, queryType){
+  //Type is either Track || Artist
+  const searchQuery = encodeURIComponent(queryString);
+  const search_url = base_url + `search?q=${searchQuery}&type=${queryType}&limit=${search_limit}`;
+  axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
+  .then((response) => {
+      let id = (queryType == 'artist') ? response.data.artists.items[0].id : response.data.tracks.items[0].id;
+      console.log(id);
+      return id;
 
-  request.post(authOptions, function(error, response, body) {
-    if (!error && response.statusCode === 200) {
-      var access_token = body.access_token;
-      res.send({
-        'access_token': access_token
-      });
-    }
+  }).catch((err) =>{
+      console.log('Error with requesting API endpoint');
   });
+}
+
+/*
+* Interface for getting recommendations
+* Inputs: strings of items, seperated with ','
+*/
+function getRecommendations(seed_artists, seed_generes, seed_tracks) {
+    const search_url = base_url + `recommendations?limit=${search_limit}&seed_artists=${seed_artists}&seed_genres=${seed_generes}&seed_tracks=${seed_tracks}`;
+
+    axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
+    .then((response) => {
+        console.log(response.data.tracks)
+
+    }).catch((err) =>{
+        console.log('Error with requesting API endpoint');
+    });
+}
+
+
+//Server constants
+const PORT = 8888; 
+const router = express.Router();
+const app = express(); //starts an express app
+
+//app.use(express.static('public', options));
+
+/* Mongo */
+let mongoDb;
+const { MongoClient, ObjectId} = require('mongodb');
+let mongo_info = {
+  host: "localhost", //TODO: change to host ip-address that will be holding the mongo db
+  port: "27017",
+  db: "ee547_group5_project",
+  opts: {
+    useUnifiedTopology: true
+  }
+};
+
+const uri = `mongodb://${mongo_info.host}:${mongo_info.port}?useUnifiedTopology=${mongo_info.opts.useUnifiedTopology}`;
+
+
+MongoClient.connect(uri, (err, mongoConnect) => {
+  //exit for any connection error
+  if(err){
+    process.exit(5);
+  }
+
+  mongoDb = mongoConnect.db(mongo_info.db);
+  app.listen(PORT);
+  console.log(`Server started, port ${PORT}`);
+
 });
 
-console.log('Listening on 3000');
-app.listen(3000);
+//app.listen(PORT);
+//console.log(`Server started, port ${PORT}`);
+
+app.get('/', (req, res, next) => {
+  res.sendFile(__dirname + '/public/index.html');  
+});
+
+app.get('/index', (req, res, next) => {
+  res.sendFile(__dirname + '/index.html');  
+});
+
+app.get('/about', (req, res, next) => {
+  res.sendFile(__dirname + '/about.html');  
+});
+
+app.get('/sorry', (req, res, next) => {
+  res.sendFile(__dirname + '/sorry.html');  
+});
+
+//Route for signing up new user
+app.post('/signup', (req, res) => {
+  let first_name = req.query.fname;
+  let last_name = req.query.lname;
+  let password = req.query.password;
+  
+
+  //check the fields are valid
+  if(fname_m === "" || regExp.test(fname_m) == false)
+  {
+    const errorString = "invalid first name";
+    res.status(422).send(errorString);
+  }
+
+  if(fname_m === "" || regExp.test(fname_m) == false)
+  {
+    const errorString = "invalid first name";
+    res.status(422).send(errorString);
+  }
+
+  if(fname_m === "" || regExp.test(fname_m) == false)
+  {
+    const errorString = "invalid first name";
+    res.status(422).send(errorString);
+  }
+
+
+  //Add the user & redirect
+  let newUser = {
+    balance_usd: String(initial_balance_m),
+    created_at: new Date(),
+    fname: first_name,
+    lname: last_name,
+    pass: password,
+  }
+
+  mongoDb.collection('user').insertOne(newUser, function(err, result){
+    if(err){
+      console.log(err);
+    }
+
+    //Redirect to information about the user
+    res.redirect(303, `/about/${result.insertedId}`);
+  });
+
+});
+
+app.use('/', router);
+
+
+/* List of Generes: Variable is hoisted */
+var genre_list = [
+    "acoustic",
+    "afrobeat",
+    "alt-rock",
+    "alternative",
+    "ambient",
+    "anime",
+    "black-metal",
+    "bluegrass",
+    "blues",
+    "bossanova",
+    "brazil",
+    "breakbeat",
+    "british",
+    "cantopop",
+    "chicago-house",
+    "children",
+    "chill",
+    "classical",
+    "club",
+    "comedy",
+    "country",
+    "dance",
+    "dancehall",
+    "death-metal",
+    "deep-house",
+    "detroit-techno",
+    "disco",
+    "disney",
+    "drum-and-bass",
+    "dub",
+    "dubstep",
+    "edm",
+    "electro",
+    "electronic",
+    "emo",
+    "folk",
+    "forro",
+    "french",
+    "funk",
+    "garage",
+    "german",
+    "gospel",
+    "goth",
+    "grindcore",
+    "groove",
+    "grunge",
+    "guitar",
+    "happy",
+    "hard-rock",
+    "hardcore",
+    "hardstyle",
+    "heavy-metal",
+    "hip-hop",
+    "holidays",
+    "honky-tonk",
+    "house",
+    "idm",
+    "indian",
+    "indie",
+    "indie-pop",
+    "industrial",
+    "iranian",
+    "j-dance",
+    "j-idol",
+    "j-pop",
+    "j-rock",
+    "jazz",
+    "k-pop",
+    "kids",
+    "latin",
+    "latino",
+    "malay",
+    "mandopop",
+    "metal",
+    "metal-misc",
+    "metalcore",
+    "minimal-techno",
+    "movies",
+    "mpb",
+    "new-age",
+    "new-release",
+    "opera",
+    "pagode",
+    "party",
+    "philippines-opm",
+    "piano",
+    "pop",
+    "pop-film",
+    "post-dubstep",
+    "power-pop",
+    "progressive-house",
+    "psych-rock",
+    "punk",
+    "punk-rock",
+    "r-n-b",
+    "rainy-day",
+    "reggae",
+    "reggaeton",
+    "road-trip",
+    "rock",
+    "rock-n-roll",
+    "rockabilly",
+    "romance",
+    "sad",
+    "salsa",
+    "samba",
+    "sertanejo",
+    "show-tunes",
+    "singer-songwriter",
+    "ska",
+    "sleep",
+    "songwriter",
+    "soul",
+    "soundtracks",
+    "spanish",
+    "study",
+    "summer",
+    "swedish",
+    "synth-pop",
+    "tango",
+    "techno",
+    "trance",
+    "trip-hop",
+    "turkish",
+    "work-out",
+    "world-music"
+];
