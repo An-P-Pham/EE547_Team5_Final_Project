@@ -5,7 +5,7 @@
 /* Modules, Frameworks, Libraries */
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
-const axios = require('axios')
+const axios = require('axios');
 
 
 /* Global Constants */
@@ -92,6 +92,7 @@ const PORT = 8888;
 const router = express.Router();
 const app = express(); //starts an express app
 
+app.use(express.urlencoded({ extended: false}));
 //app.use(express.static('public', options));
 
 /* Mongo */
@@ -124,12 +125,13 @@ MongoClient.connect(uri, (err, mongoConnect) => {
 //app.listen(PORT);
 //console.log(`Server started, port ${PORT}`);
 
+//Home page:
 app.get('/', (req, res, next) => {
   res.sendFile(__dirname + '/public/index.html');  
 });
 
 app.get('/index', (req, res, next) => {
-  res.sendFile(__dirname + '/index.html');  
+  res.sendFile(__dirname + '/public/index.html');  
 });
 
 app.get('/about', (req, res, next) => {
@@ -142,49 +144,62 @@ app.get('/sorry', (req, res, next) => {
 
 //Route for signing up new user
 app.post('/signup', (req, res) => {
-  let first_name = req.query.fname;
-  let last_name = req.query.lname;
-  let password = req.query.password;
-  
+  let userid = req.body.userid;
+  let username = req.body.username;
+  let password = req.body.password;
+  console.log(userid);
+  console.log(username);
+  console.log(password);
 
-  //check the fields are valid
-  if(fname_m === "" || regExp.test(fname_m) == false)
-  {
-    const errorString = "invalid first name";
-    res.status(422).send(errorString);
-  }
+  res.redirect('/index');
 
-  if(fname_m === "" || regExp.test(fname_m) == false)
-  {
-    const errorString = "invalid first name";
-    res.status(422).send(errorString);
-  }
+  // //check the fields are valid
+  // if(fname_m === "" || regExp.test(fname_m) == false)
+  // {
+  //   const errorString = "invalid first name";
+  //   res.status(422).send(errorString);
+  // }
 
-  if(fname_m === "" || regExp.test(fname_m) == false)
-  {
-    const errorString = "invalid first name";
-    res.status(422).send(errorString);
-  }
+  // if(fname_m === "" || regExp.test(fname_m) == false)
+  // {
+  //   const errorString = "invalid first name";
+  //   res.status(422).send(errorString);
+  // }
+
+  // if(fname_m === "" || regExp.test(fname_m) == false)
+  // {
+  //   const errorString = "invalid first name";
+  //   res.status(422).send(errorString);
+  // }
 
 
   //Add the user & redirect
-  let newUser = {
-    balance_usd: String(initial_balance_m),
-    created_at: new Date(),
-    fname: first_name,
-    lname: last_name,
-    pass: password,
-  }
+  // let newUser = {
+  //   balance_usd: String(initial_balance_m),
+  //   created_at: new Date(),
+  //   fname: first_name,
+  //   lname: last_name,
+  //   pass: password,
+  // }
 
-  mongoDb.collection('user').insertOne(newUser, function(err, result){
-    if(err){
-      console.log(err);
-    }
+  // mongoDb.collection('user').insertOne(newUser, function(err, result){
+  //   if(err){
+  //     console.log(err);
+  //   }
 
-    //Redirect to information about the user
-    res.redirect(303, `/about/${result.insertedId}`);
-  });
+  //   //Redirect to information about the user
+  //   res.redirect(303, `/about/${result.insertedId}`);
+  // });
 
+});
+
+//Route for signing in existing user
+app.post('/signin', (req, res) =>{
+  let userid = req.body.userid;
+  let password = req.body.passwordinput;
+
+  console.log(userid);
+  console.log(password);
 });
 
 app.use('/', router);
