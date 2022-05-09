@@ -134,7 +134,7 @@ app.get('/index', (req, res, next) => {
   res.sendFile(__dirname + '/public/index.html');  
 });
 
-app.get('/about', (req, res, next) => {
+app.get('/about/:id', (req, res, next) => {
   res.sendFile(__dirname + '/about.html');  
 });
 
@@ -144,52 +144,34 @@ app.get('/sorry', (req, res, next) => {
 
 //Route for signing up new user
 app.post('/signup', (req, res) => {
-  let userid = req.body.userid;
-  let username = req.body.username;
-  let password = req.body.password;
-  console.log(userid);
-  console.log(username);
-  console.log(password);
+  let useridInput = req.body.userid;
+  let nameInput = req.body.name;
+  let passwordInput = req.body.password;
 
-  res.redirect('/index');
-
-  // //check the fields are valid
-  // if(fname_m === "" || regExp.test(fname_m) == false)
-  // {
-  //   const errorString = "invalid first name";
-  //   res.status(422).send(errorString);
-  // }
-
-  // if(fname_m === "" || regExp.test(fname_m) == false)
-  // {
-  //   const errorString = "invalid first name";
-  //   res.status(422).send(errorString);
-  // }
-
-  // if(fname_m === "" || regExp.test(fname_m) == false)
-  // {
-  //   const errorString = "invalid first name";
-  //   res.status(422).send(errorString);
-  // }
+  //Valid inputs should be checked on client side java script
 
 
   //Add the user & redirect
-  // let newUser = {
-  //   balance_usd: String(initial_balance_m),
-  //   created_at: new Date(),
-  //   fname: first_name,
-  //   lname: last_name,
-  //   pass: password,
-  // }
+  let newUser = {
+    userid: useridInput,
+    name: nameInput,
+    password: passwordInput,
+    artists: [],
+    tracks: [],
+    genres: []
+  }
+  //TODO: prevent duplicate inserts
+  mongoDb.collection('user').insertOne(newUser, function(err, result){
+    if(err){
+      console.log(err);
+    }
 
-  // mongoDb.collection('user').insertOne(newUser, function(err, result){
-  //   if(err){
-  //     console.log(err);
-  //   }
+    //Redirect to information about the user
+    console.log(result.insertedId);
+    res.redirect(303, '/index');
+    //res.redirect(303, `/about/${result.insertedId}`);
 
-  //   //Redirect to information about the user
-  //   res.redirect(303, `/about/${result.insertedId}`);
-  // });
+  });
 
 });
 
@@ -198,8 +180,37 @@ app.post('/signin', (req, res) =>{
   let userid = req.body.userid;
   let password = req.body.passwordinput;
 
-  console.log(userid);
-  console.log(password);
+  if(userid && password)
+  {
+    mongoDb.collection('user').findOne({ userid: userid })
+        .then(function(doc){
+          //user not found
+          if(doc === null)
+          {
+            res.status(401).send({error: "Can't find userid"});
+          }
+          else
+          {
+            const resUserId = doc.userid;
+            const resUserPassword = doc.password;
+            const resName = doc.name;
+
+            if(resUserPassword !== password)
+            {
+              //incorrect password
+              res.status(401).send({error: "Incorrect password"});
+            }
+
+            const databaseID = doc._id.toString();
+            res.redirect(303, `/about/${databaseID}`);
+          }
+          
+        }).catch(function(err){
+          console.log(err);
+        });
+  }else{
+    res.status(404).end();
+  }
 });
 
 app.use('/', router);
