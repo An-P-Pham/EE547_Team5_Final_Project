@@ -93,7 +93,7 @@ const router = express.Router();
 const app = express(); //starts an express app
 
 app.use(express.urlencoded({ extended: false}));
-//app.use(express.static('public', options));
+app.use(express.static('public'));
 
 /* Mongo */
 let mongoDb;
