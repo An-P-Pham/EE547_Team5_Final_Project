@@ -1,0 +1,87 @@
+h1 {
+    color: Black;
+	font-family: Gabriola;
+	font-size: 48px;
+}
+
+.title{
+    border-bottom: solid;
+    border-color: grey;
+}
+
+.container{
+    background: Gainsboro;
+    border-style: solid;
+    border-color: grey;
+}
+
+#empty_res {
+    max-width: 900px;
+    width: 100%;
+    background: Gainsboro;
+    border-style: solid;
+    border-color: grey;
+}
+
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  padding: 8px;
+}
+
+td {
+    font-family: Helvetica, sans-serif;
+}
+
+td img {
+    height: 100px;
+    width: 100px;
+}
+
+/*a {
+    text-decoration: none;
+    color: black;
+    font-family: Helvetica, sans-serif;
+}*/
+
+.event_info_body {
+    display: flex;
+}
+
+.vert_col {
+	flex: 1;
+	width: 20vw;
+	margin: 10px;
+}
+
+.req_input:after{
+    content: "*";
+    color: red;
+}
+
+.center-pills {
+    display: flex;
+    justify-content: center;
+}
+
+#reset_button{
+    background-color: white;
+    color: grey;
+}
+
+select {
+    -webkit-appearance: none;
+}
+
+.pointer_finger{
+    cursor: pointer;
+}
+
+p.info_category {
+    font-weight: bold;
+}
