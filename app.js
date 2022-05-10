@@ -200,6 +200,52 @@ app.get('/sorry', (req, res, next) => {
   res.sendFile(__dirname + '/sorry.html');  
 });
 
+app.get('/dashboard', (req, res, next) => {
+  session = req.session;  
+  if(session.userid){
+    res.render('dashboard.html', {userid: session.userid});  
+  }
+  else{
+    res.render('dashboard.html');
+  }
+});
+
+app.get('/table', (req, res, next) => {
+  genre_json = [];
+  genre_list.forEach(function(genre){
+    genre_json.push({"genre": genre});
+  });
+  res.render('table.html', { items: [{artist:"aa", name:"aa", date:"11", tracks:"1", links:"http" }], genres: genre_json });  
+});
+
+app.post('/table', (req, res) => {  
+  console.log(req.body.artist);
+  console.log(req.body.tracks);
+  selected_genres = [];
+  for(var key in req.body){
+    if(key != 'artist' && key != 'tracks'){
+      selected_genres.push(key);
+    }
+  }
+  console.log(selected_genres);
+});
+
+app.get('/chart', (req, res, next) => {
+  res.render('chart.html');  
+});
+app.get('/form', (req, res, next) => {
+  res.render('form.html');  
+});
+app.get('/empty', (req, res, next) => {
+  res.render('empty.html');  
+});
+app.get('/tab-panel', (req, res, next) => {
+  res.render('tab-panel.html');  
+});
+app.get('/ui-elements', (req, res, next) => {
+  res.render('ui-elements.html');  
+});
+
 //Route for signing up new user
 app.post('/signup', async (req, res) => {
   let useridInput = req.body.userid;
@@ -275,7 +321,7 @@ app.post('/signin', (req, res) =>{
             session = req.session
             session.userid = userid
             const databaseID = doc._id.toString();
-            res.redirect(303, `/`);
+            res.redirect(303, `/dashboard`);
           }
           
         }).catch(function(err){
