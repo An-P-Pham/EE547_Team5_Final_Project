@@ -105,10 +105,10 @@ function getRecommendations(seed_artists, seed_generes, seed_tracks, callback) {
         {
           const recommendationObj = {
             artist: tracks[i].artists[0].name,
-            albumName: tracks[i].album.name,
-            totalTracks: tracks[i].album.total_tracks,
-            releaseDate: tracks[i].album.release_date,
-            previewLink: tracks[i].preview_url
+            name: tracks[i].album.name,
+            tracks: tracks[i].album.total_tracks,
+            date: tracks[i].album.release_date,
+            link: tracks[i].preview_url
           };
           recommendation_list.push(recommendationObj);
         }
@@ -211,16 +211,18 @@ app.get('/dashboard', (req, res, next) => {
 });
 
 app.get('/table', (req, res, next) => {
-  genre_json = [];
+  var genre_json = [];
   genre_list.forEach(function(genre){
     genre_json.push({"genre": genre});
   });
-  res.render('table.html', { items: [{artist:"aa", name:"aa", date:"11", tracks:"1", links:"http" }], genres: genre_json });  
+  res.render('table.html', { genres: genre_json });  
 });
 
-app.post('/table', (req, res) => {  
+app.post('/table', async (req, res) => {  
   console.log(req.body.artist);
   console.log(req.body.tracks);
+  artists = req.body.artist;
+  tracks = req.body.tracks;
   selected_genres = [];
   for(var key in req.body){
     if(key != 'artist' && key != 'tracks'){
@@ -228,6 +230,33 @@ app.post('/table', (req, res) => {
     }
   }
   console.log(selected_genres);
+
+  const resultArr = await Promise.all([
+    searchItem(artists, 'artist'),
+    searchItem(tracks, 'track')
+  ]);
+
+  const artists_seed_ids = resultArr[0];
+  const tracks_seed_ids = resultArr[1];
+  const selected_genres_string = selected_genres.join(',');
+  let selected_artists_string = artists_seed_ids.join(',');
+  let selected_tracks_string = tracks_seed_ids.join(',');   
+  var recommendedSongs = undefined;
+  const recDone = function callback(err, value) {
+    if (err) {
+        console.error(err);
+    } else {        
+        recommendedSongs = value;
+        console.log(recommendedSongs)
+        var genre_json = [];
+        genre_list.forEach(function(genre){
+          genre_json.push({"genre": genre});
+        });
+        res.render('table.html', { items:recommendedSongs, genres: genre_json });  
+    }
+  }
+  await getRecommendations(selected_artists_string, selected_genres.join(','), selected_tracks_string, recDone);
+  
 });
 
 app.get('/chart', (req, res, next) => {
