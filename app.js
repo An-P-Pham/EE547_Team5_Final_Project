@@ -144,8 +144,7 @@ MongoClient.connect(uri, (err, mongoConnect) => {
 
 //Home page:
 app.get('/', (req, res, next) => {
-  session = req.session;
-  console.log(req.session);
+  session = req.session;  
   if(session.userid){
     res.render('index.html', {userid: session.userid});  
   }
