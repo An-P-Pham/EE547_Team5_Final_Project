@@ -13,7 +13,7 @@ var sessions = require('express-session')
 var client_id = '1e03ef1b02c04193a4f9ee30aa04502b'; // Your client id
 var client_secret = 'c7648e51d4ec4b01a821fad346c2b7cf'; // Your secret
 var access_token; //Used in spotify API
-const search_limit = 5;
+const search_limit = 10;
 const base_url = 'https://api.spotify.com/v1/';
 const regExp = /^[a-zA-Z]+$/;
 
@@ -54,37 +54,71 @@ request.post(authOptions, function(error, response, body) {
 
 /*
 * We can use this function to find the seed_artists & seed_tracks via word query
-* queryString: Either track name or artist name
+* Item: Either a list of artists/tracks or single string
 * queryType: Either 'track' or 'artist'
 */
-function searchItem(queryString, queryType){
+async function searchItem(queryItem, queryType){
   //Type is either Track || Artist
-  const searchQuery = encodeURIComponent(queryString);
-  const search_url = base_url + `search?q=${searchQuery}&type=${queryType}&limit=${search_limit}`;
-  axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
-  .then((response) => {
+  let seed_id_list = [];
+  if(Array.isArray(queryItem))
+  {
+    
+    for (const item of queryItem){
+      const searchQuery = encodeURIComponent(item);
+      const search_url = base_url + `search?q=${searchQuery}&type=${queryType}&limit=${search_limit}`;
+      const response = await axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}});
       let id = (queryType == 'artist') ? response.data.artists.items[0].id : response.data.tracks.items[0].id;
-      console.log(id);
-      return id;
+      seed_id_list.push(id);
+    }
 
-  }).catch((err) =>{
-      console.log('Error with requesting API endpoint');
-  });
+  }else{
+
+    const searchQuery = encodeURIComponent(queryItem);
+    const search_url = base_url + `search?q=${searchQuery}&type=${queryType}&limit=${search_limit}`;
+    axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
+    .then((response) => {
+        let id = (queryType == 'artist') ? response.data.artists.items[0].id : response.data.tracks.items[0].id;
+        //console.log(id);
+        seed_id_list.push(id);
+
+    }).catch((err) =>{
+        console.log('Error with requesting API endpoint');
+    });
+    
+  }
+
+  return seed_id_list;
+  
 }
 
 /*
 * Interface for getting recommendations
 * Inputs: strings of items, seperated with ','
 */
-function getRecommendations(seed_artists, seed_generes, seed_tracks) {
+function getRecommendations(seed_artists, seed_generes, seed_tracks, callback) {
     const search_url = base_url + `recommendations?limit=${search_limit}&seed_artists=${seed_artists}&seed_genres=${seed_generes}&seed_tracks=${seed_tracks}`;
-
     axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
     .then((response) => {
-        console.log(response.data.tracks)
+        let recommendation_list = [];
+        let tracks = response.data.tracks;
+        for(let i=0; i<search_limit; i++)
+        {
+          const recommendationObj = {
+            artist: tracks[i].artists[0].name,
+            albumName: tracks[i].album.name,
+            totalTracks: tracks[i].album.total_tracks,
+            releaseDate: tracks[i].album.release_date,
+            previewLink: tracks[i].preview_url
+          };
+          recommendation_list.push(recommendationObj);
+        }
+        //console.log(recommendation_list);
+        //return recommendation_list;
+        callback(null, recommendation_list);
 
     }).catch((err) =>{
-        console.log('Error with requesting API endpoint');
+        //console.log(err);
+        callback(err, []);
     });
 }
 
@@ -167,7 +201,7 @@ app.get('/sorry', (req, res, next) => {
 });
 
 //Route for signing up new user
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
   let useridInput = req.body.userid;
   let nameInput = req.body.name;
   let passwordInput = req.body.password;
@@ -176,26 +210,38 @@ app.post('/signup', (req, res) => {
 
 
   //Add the user & redirect
-  let newUser = {
+  const newUser = {
     userid: useridInput,
+    createdAt: new Date(),
     name: nameInput,
     password: passwordInput,
     artists: [],
     tracks: [],
     genres: []
   }
-  //TODO: prevent duplicate inserts
-  mongoDb.collection('user').insertOne(newUser, function(err, result){
-    if(err){
-      console.log(err);
+
+  try{
+    const userDoc = await mongoDb.collection('user').findOne({ userid: useridInput });
+    if(userDoc === null)
+    {
+      console.log('Userid is not used');
+      mongoDb.collection('user').insertOne(newUser, function(err, result){
+        if(err){
+          console.log(err);
+        }
+ 
+        //Redirect to information about the user
+        console.log(result.insertedId);
+        res.redirect(303, '/index');
+        //res.redirect(303, `/about/${result.insertedId}`);
+      });
+ 
+    }else{
+      res.status(401).send({error: "UserID is already in use"});
     }
-
-    //Redirect to information about the user
-    console.log(result.insertedId);
-    res.redirect(303, '/index');
-    //res.redirect(303, `/about/${result.insertedId}`);
-
-  });
+  }catch(error){
+    console.log('Error when checking if a userid is alrady taken');
+  }
 
 });
 
@@ -238,6 +284,52 @@ app.post('/signin', (req, res) =>{
   }else{
     res.status(404).end();
   }
+});
+
+//Route for getting the recommendations
+app.post('/recommendation', async (req,res) => {
+  let artists = req.body.artists;
+  let genres = req.body.genres;
+  let tracks = req.body.tracks;
+
+  console.log(artists);
+  console.log(genres);
+  console.log(tracks);
+  //Should probably save the quries to the database
+
+  //loop over the artists & tracks to get the seed values
+  if(artists && genres && tracks){
+
+    const resultArr = await Promise.all([
+        searchItem(artists, 'artist'),
+        searchItem(tracks, 'track')
+    ]);
+
+    const artists_seed_ids = resultArr[0];
+    const tracks_seed_ids = resultArr[1];
+    const selected_genres_string = (Array.isArray(genres)) ? genres.join(',') : genres;
+    let selected_artists_string = artists_seed_ids.join(',');
+    let selected_tracks_string = tracks_seed_ids.join(',');   
+
+    console.log('After API calls');
+    console.log(selected_artists_string);
+    console.log(selected_genres_string);
+    console.log(selected_tracks_string);
+    const recDone = function callback(err, value) {
+      if (err) {
+          console.error(err);
+      } else {
+          console.log(value);
+          res.status(202).json(value);
+      }
+    }
+    const recommendedSongs = await getRecommendations(selected_artists_string, selected_genres_string, selected_tracks_string, recDone);
+    
+
+  }else{
+    res.status(401).send({error: "Invalid inputs"});
+  }
+
 });
 
 app.get('/logout',(req,res) => {
