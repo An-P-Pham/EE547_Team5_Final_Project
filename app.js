@@ -6,7 +6,8 @@
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 const axios = require('axios');
-
+var nunjucks = require('nunjucks');
+var sessions = require('express-session')
 
 /* Global Constants */
 var client_id = '1e03ef1b02c04193a4f9ee30aa04502b'; // Your client id
@@ -15,6 +16,7 @@ var access_token; //Used in spotify API
 const search_limit = 5;
 const base_url = 'https://api.spotify.com/v1/';
 const regExp = /^[a-zA-Z]+$/;
+
 
 
 //Application requests authorization
@@ -93,11 +95,26 @@ const router = express.Router();
 const app = express(); //starts an express app
 
 app.use(express.urlencoded({ extended: false}));
-app.use(express.static('public'));
+app.use('/', express.static('public'));
+app.engine( 'html', nunjucks.render ) ;
+app.set("view engine", "html");
+const oneDay = 1000 * 60 * 60 * 24;
+app.use(sessions({
+    secret: "thisismysecrctekeyfhrgfgrfrty84fwir767",
+    saveUninitialized:true,
+    cookie: { maxAge: oneDay },
+    resave: false 
+}));
+
+var env = nunjucks.configure(['./views'], { // set folders with templates
+  autoescape: true, 
+  express: app
+});
 
 /* Mongo */
 let mongoDb;
 const { MongoClient, ObjectId} = require('mongodb');
+
 let mongo_info = {
   host: "localhost", //TODO: change to host ip-address that will be holding the mongo db
   port: "27017",
@@ -127,11 +144,19 @@ MongoClient.connect(uri, (err, mongoConnect) => {
 
 //Home page:
 app.get('/', (req, res, next) => {
-  res.sendFile(__dirname + '/public/index.html');  
+  session = req.session;
+  console.log(req.session);
+  if(session.userid){
+    res.render('index.html', {userid: session.userid});  
+  }
+  else{
+    res.render('index.html');
+  }
+  
 });
 
 app.get('/index', (req, res, next) => {
-  res.sendFile(__dirname + '/public/index.html');  
+  res.render('index.html', );  
 });
 
 app.get('/about/:id', (req, res, next) => {
@@ -178,8 +203,9 @@ app.post('/signup', (req, res) => {
 //Route for signing in existing user
 app.post('/signin', (req, res) =>{
   let userid = req.body.userid;
-  let password = req.body.passwordinput;
-
+  let password = req.body.passwordinput;  
+  
+  console.log(userid, password);
   if(userid && password)
   {
     mongoDb.collection('user').findOne({ userid: userid })
@@ -200,9 +226,11 @@ app.post('/signin', (req, res) =>{
               //incorrect password
               res.status(401).send({error: "Incorrect password"});
             }
-
+            // Set user session
+            session = req.session
+            session.userid = userid
             const databaseID = doc._id.toString();
-            res.redirect(303, `/about/${databaseID}`);
+            res.redirect(303, `/`);
           }
           
         }).catch(function(err){
@@ -211,6 +239,11 @@ app.post('/signin', (req, res) =>{
   }else{
     res.status(404).end();
   }
+});
+
+app.get('/logout',(req,res) => {
+  req.session.destroy();
+  res.redirect('/');
 });
 
 app.use('/', router);
