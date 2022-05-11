@@ -24,9 +24,14 @@ class TrackAnalyzer:
         return AWS_ACCESS, AWS_SECRET, AWS_BUCKET
 
     def extract_dataset(self, filepath):
-        AWS_ACCESS, AWS_SECRET, AWS_BUCKET = self.get_credentials()
-        client = boto3.client('s3', aws_access_key_id=AWS_ACCESS, aws_secret_access_key=AWS_SECRET)
-        obj = client.get_object(Bucket=AWS_BUCKET, Key=filepath)['Body'].read().decode('utf-8')
+        obj = None
+        try:
+            AWS_ACCESS, AWS_SECRET, AWS_BUCKET = self.get_credentials()
+            client = boto3.client('s3', aws_access_key_id=AWS_ACCESS, aws_secret_access_key=AWS_SECRET)
+            obj = client.get_object(Bucket=AWS_BUCKET, Key=filepath)['Body'].read().decode('utf-8')
+        except Exception:
+            f = open(filepath)
+            obj = json.load(f)
         d = json.loads(obj)
         df = pd.DataFrame.from_dict(d)
         return df
