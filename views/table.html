@@ -257,7 +257,78 @@
                     </div>
                     <!--End Advanced Tables -->
                 </div>
-            </div>                         
+            </div>  
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <!-- Advanced Tables -->
+                    <div class="card">
+                        <div class="card-action">                             
+                        </div>
+                        <div class="card-content">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                                    <thead>
+                                        <tr>
+                                            <th>Artist</th>
+                                            <th>Track Name</th>
+                                            <th>Released Date</th>
+                                            <th>Preview Link</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in uniques %}
+                                        <tr class="odd gradeX">
+                                            <td>{{ item.artist }}</td>
+                                            <td>{{ item.name }}</td>
+                                            <td>{{ item.date }}</td>
+                                            <td class="center">{{ item.link }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <!--End Advanced Tables -->
+                </div>
+            </div> 
+
+        {% if uniques.length > 0 %}
+        <section id="dataviz" class="dataviz">
+            <div class="container">
+                <div class="row">
+                    <div class="main_dataviz text-center roomy-100">
+                        <div class="col-md-2 col-sm-4 col-6">
+                            <div class="dataviz_item m-bottom-10">
+                                <a href=""><img src="assets/images/outlier_plot.png" alt="" /></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End off row -->
+            </div>
+            <!-- End off container -->
+        </section>
+
+        <section id="dataviz" class="dataviz">
+            <div class="container">
+                <div class="row">
+                    <div class="main_dataviz text-center roomy-100">
+                        <div class="col-md-2 col-sm-4 col-6">
+                            <div class="dataviz_item m-bottom-10">
+                                <a href=""><img src="assets/images/mean_values.png" alt="" /></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End off row -->
+            </div>
+            <!-- End off container -->
+        </section>
+        {% endif %}
+                            
     </div>
              <!-- /. PAGE INNER  -->
             </div>

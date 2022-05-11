@@ -1,8 +1,9 @@
-const spotify = require('./SpotifyApi.js');
+const spotify = require('./SpotifyApiGrabber.js');
 const aws = require('aws-sdk');
 const fs = require('fs');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
-var refresh_uri = 'http://172.16.42.131:3000/refresh_token';
+//var refresh_uri = 'http://172.16.42.131:3000/refresh_token';
+const BEARER_TOKEN = 'BQAgM54ttc_q4boUW_z6-TVOAo17iazOpKp29K1xeLqZ63Pm5QTzZ3qX5YjovTuDrmMnIGYLCOWXvzhMco40ylJ03x6_Lc8QONl8PsqwTW8XkfQvcBID45D66UjIiimiT9ONGTfY6nEYxggOJlUWqw'
 
 function readAWSCredentials(path) {
     try {
@@ -37,9 +38,9 @@ function refreshToken(uri) {
     return xmlHttp.responseText;
 }
 
-const spotify_credentials = readSpotifyCredentials('./EE547_Team5_Final_Project/spotifytokens.json')
-const SPOTIFY_BEARER = spotify_credentials[0];
-const SPOTIFY_REFRESH = spotify_credentials[1];
+//const spotify_credentials = readSpotifyCredentials('./EE547_Team5_Final_Project/spotifytokens.json')
+//const SPOTIFY_BEARER = spotify_credentials[0];
+//const SPOTIFY_REFRESH = spotify_credentials[1];
 
 /*function getAccessToken(exists, callback) {
     if (!exists) {
@@ -88,7 +89,7 @@ function callback(err, res) {
 async function getAlbumTrackData() {
     let limit = 50;
     let offset = 0;
-    let spa = new spotify.SpotifyApi('BQCzWlBfL6UouCz0RZUpqa5wr5dx0esurHmlcd7G27BQoIUEaerFdgctBHJFwdw7JygSyBtYB0MZ-2-9an4fH7WGIzqztfgob7o17ikRgrBMdycjVDrQxT7UT6SZ97BjEDa9jdSLzT8hRT1nAPnrpCCNHR5LA8AJ3LmKccfT73E3hBNlnjd9OP9obzRhgg');
+    let spa = new spotify.SpotifyApi(BEARER_TOKEN);
     let data = {tracks: [], ids: [], danceability: [], energy: [], key: [], loudness: [], mode: [],
                 valence: [], speechiness: [], acousticness: [], instrumentalness: [], liveness: [],
                 tempo: [], popularity: []};
@@ -142,11 +143,136 @@ async function getAlbumTrackData() {
     });
 }
 
-function getLikedTracks() {
+async function getLikedTracks() {
+    let limit = 50;
+    let offset = 0;
+    let spa = new spotify.SpotifyApi(BEARER_TOKEN);
+    let data = {tracks: [], ids: [], danceability: [], energy: [], key: [], loudness: [], mode: [],
+                valence: [], speechiness: [], acousticness: [], instrumentalness: [], liveness: [],
+                tempo: [], popularity: []};
+    try {
+        var total = 1;
+        while (offset < total) {
+            let output = await spa.getCurrentUserLikedTracks(limit, offset, callback);
+            total = output.total;
+            data.tracks = data.tracks.concat(output.tracks);
+            data.ids = data.ids.concat(output.ids);
+            offset += limit;
+        }
 
+        let numTracks = 50;
+        let trackNum = 0;
+
+        while (trackNum < data.ids.length) {
+            let trackIds = data.ids.slice(trackNum, trackNum+numTracks).toString();
+            let track_features = await spa.getTrackFeatures(trackIds, callback);
+            let track_popularities = await spa.getTrackPopularities(trackIds, callback);
+            data.danceability = data.danceability.concat(track_features.danceability);
+            data.energy = data.energy.concat(track_features.energy);
+            data.key = data.key.concat(track_features.key);
+            data.loudness = data.loudness.concat(track_features.loudness);
+            data.mode = data.mode.concat(track_features.mode);
+            data.valence = data.valence.concat(track_features.valence);
+            data.speechiness = data.speechiness.concat(track_features.speechiness);
+            data.acousticness = data.acousticness.concat(track_features.acousticness);
+            data.instrumentalness = data.instrumentalness.concat(track_features.instrumentalness);
+            data.liveness = data.liveness.concat(track_features.liveness);
+            data.tempo = data.tempo.concat(track_features.tempo);
+            data.popularity = data.popularity.concat(track_popularities.popularity);
+            trackNum += numTracks;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+
+    const obj = JSON.stringify(data);
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: 'liked_tracks.json',
+        Body: obj
+    };
+
+    s3.upload(params, function(err, data) {
+        if (err) {
+            throw err;
+        }
+        console.log(`File uploaded successfully. ${data.Location}`);
+    });
 }
 
-function run(getAlbum, getLiked, getFeatures) {
+async function getFeaturedPlaylistTracks() {
+    let playlist_limit = 10;
+    let spa = new spotify.SpotifyApi(BEARER_TOKEN);
+    let data = {tracks: [], ids: [], danceability: [], energy: [], key: [], loudness: [], mode: [],
+                valence: [], speechiness: [], acousticness: [], instrumentalness: [], liveness: [],
+                tempo: [], popularity: []};
+    try {
+        let playlist_output = await spa.getFeaturedPlaylists(playlist_limit, callback);
+        let playlist_ids = playlist_output.playlist_ids;
+
+        let totals = [];
+        for (playlist of playlist_ids) {
+            let limit = 50;
+            let offset = 0;
+            var total = 1;
+            while (offset < total) {
+                let output = await spa.getPlaylistTracks(playlist, limit, offset, callback);
+                total = output.total;
+                data.tracks = data.tracks.concat(output.tracks);
+                data.ids = data.ids.concat(output.ids);
+                offset += limit;
+            }
+            totals.push(total);
+        }
+
+        for (total of totals) {
+            let numTracks = 50;
+            let trackNum = 0;
+            while (trackNum < total) {
+                let trackIds = "";
+                if (trackNum+numTracks > total) {
+                    trackIds = data.ids.slice(trackNum, total).toString();
+                } else {
+                    trackIds = data.ids.slice(trackNum, trackNum+numTracks).toString();
+                }
+                
+                let track_features = await spa.getTrackFeatures(trackIds, callback);
+                let track_popularities = await spa.getTrackPopularities(trackIds, callback);
+                data.danceability = data.danceability.concat(track_features.danceability);
+                data.energy = data.energy.concat(track_features.energy);
+                data.key = data.key.concat(track_features.key);
+                data.loudness = data.loudness.concat(track_features.loudness);
+                data.mode = data.mode.concat(track_features.mode);
+                data.valence = data.valence.concat(track_features.valence);
+                data.speechiness = data.speechiness.concat(track_features.speechiness);
+                data.acousticness = data.acousticness.concat(track_features.acousticness);
+                data.instrumentalness = data.instrumentalness.concat(track_features.instrumentalness);
+                data.liveness = data.liveness.concat(track_features.liveness);
+                data.tempo = data.tempo.concat(track_features.tempo);
+                data.popularity = data.popularity.concat(track_popularities.popularity);
+                trackNum += numTracks;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+
+    const obj = JSON.stringify(data);
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: 'featured_playlist_tracks.json',
+        Body: obj
+    };
+
+    s3.upload(params, function(err, data) {
+        if (err) {
+            throw err;
+        }
+        console.log(`File uploaded successfully. ${data.Location}`);
+    });
+}
+
+function run(getAlbum, getLiked, getFeaturedPlaylist) {
     if (getAlbum) {
         getAlbumTrackData();
     }
@@ -155,9 +281,9 @@ function run(getAlbum, getLiked, getFeatures) {
         getLikedTracks();
     }
 
-    if (getFeatures) {
-        getTrackFeatures();
+    if (getFeaturedPlaylist) {
+        getFeaturedPlaylistTracks();
     }
 }
 
-run(true, false, false);
+run(false, false, true);

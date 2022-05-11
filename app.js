@@ -16,7 +16,7 @@ var access_token; //Used in spotify API
 const search_limit = 10;
 const base_url = 'https://api.spotify.com/v1/';
 const regExp = /^[a-zA-Z]+$/;
-
+const exec = require("child_process").exec;
 
 
 //Application requests authorization
@@ -95,7 +95,7 @@ async function searchItem(queryItem, queryType){
 * Interface for getting recommendations
 * Inputs: strings of items, seperated with ','
 */
-function getRecommendations(seed_artists, seed_generes, seed_tracks, callback) {
+function getRecommendationsAndUnique(seed_artists, seed_generes, seed_tracks, ids, callback) {
     const search_url = base_url + `recommendations?limit=${search_limit}&seed_artists=${seed_artists}&seed_genres=${seed_generes}&seed_tracks=${seed_tracks}`;
     axios.get(search_url, {headers: {Authorization: `Bearer ${access_token}`}})
     .then((response) => {
@@ -112,13 +112,36 @@ function getRecommendations(seed_artists, seed_generes, seed_tracks, callback) {
           };
           recommendation_list.push(recommendationObj);
         }
+
+        const search_url_unique = base_url + `tracks?ids=${ids}`;
+        axios.get(search_url_unique, {headers: {Authorization: `Bearer ${access_token}`}})
+        .then((unique_response) => {
+            let unique_list = [];
+            let unique_tracks = unique_response.data.tracks;
+            for(let i=0; i<unique_tracks.length; i++)
+            {
+              const uniqueObj = {
+                artist: unique_tracks[i].artists[0].name,
+                name: unique_tracks[i].name,
+                date: unique_tracks[i].album.release_date,
+                link: unique_tracks[i].preview_url
+              };
+              unique_list.push(uniqueObj);
+            }
+            //console.log(recommendation_list);
+            //return recommendation_list;
+            callback(null, recommendation_list, unique_list);
+
+        }).catch((err) =>{
+            //console.log(err);
+            callback(err, recommendation_list, []);
+        });
         //console.log(recommendation_list);
         //return recommendation_list;
-        callback(null, recommendation_list);
 
     }).catch((err) =>{
         //console.log(err);
-        callback(err, []);
+        callback(err, [], []);
     });
 }
 
@@ -173,8 +196,8 @@ MongoClient.connect(uri, (err, mongoConnect) => {
 
 });
 
-//app.listen(PORT);
-//console.log(`Server started, port ${PORT}`);
+app.listen(3000);
+console.log(`Server started, port ${3000}`);
 
 //Home page:
 app.get('/', (req, res, next) => {
@@ -215,7 +238,7 @@ app.get('/table', (req, res, next) => {
   genre_list.forEach(function(genre){
     genre_json.push({"genre": genre});
   });
-  res.render('table.html', { genres: genre_json });  
+  res.render('table.html', { genres: genre_json });
 });
 
 app.post('/table', async (req, res) => {  
@@ -242,20 +265,32 @@ app.post('/table', async (req, res) => {
   let selected_artists_string = artists_seed_ids.join(',');
   let selected_tracks_string = tracks_seed_ids.join(',');   
   var recommendedSongs = undefined;
-  const recDone = function callback(err, value) {
+  var uniqueSongs = undefined;
+
+  const recuniDone = function callback(err, value1, value2) {
     if (err) {
         console.error(err);
     } else {        
-        recommendedSongs = value;
-        console.log(recommendedSongs)
+        recommendedSongs = value1;
+        uniqueSongs = value2;
         var genre_json = [];
         genre_list.forEach(function(genre){
           genre_json.push({"genre": genre});
         });
-        res.render('table.html', { items:recommendedSongs, genres: genre_json });  
+
+        res.render('table.html', { uniques: uniqueSongs, items:recommendedSongs, genres: genre_json });
     }
   }
-  await getRecommendations(selected_artists_string, selected_genres.join(','), selected_tracks_string, recDone);
+  
+  exec(`python3 track_analyzer.py`, (error, stdout) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+    }
+    let ids = stdout.replace(/^\[|\]$/g, "").split(", ");
+    ids[ids.length-1] = ids[ids.length-1].trim().substr(0, ids[ids.length-1].length-2);
+    ids_string = ids.join().replaceAll("'", "");
+    getRecommendationsAndUnique(selected_artists_string, selected_genres.join(','), selected_tracks_string, ids_string, recuniDone);
+  });
   
 });
 
