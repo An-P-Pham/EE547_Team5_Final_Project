@@ -10,8 +10,8 @@ var nunjucks = require('nunjucks');
 var sessions = require('express-session')
 
 /* Global Constants */
-var client_id = '1e03ef1b02c04193a4f9ee30aa04502b'; // Your client id
-var client_secret = 'c7648e51d4ec4b01a821fad346c2b7cf'; // Your secret
+var client_id; //TODO: Update Application with client_id
+var client_secret; // TODO: Update application with clinet_secret
 var access_token; //Used in spotify API
 const search_limit = 10;
 const base_url = 'https://api.spotify.com/v1/';
