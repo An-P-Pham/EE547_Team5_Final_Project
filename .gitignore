@@ -1,0 +1,2 @@
+*.venv/*
+aws_secrets.csv
